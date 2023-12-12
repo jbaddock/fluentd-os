@@ -34,7 +34,7 @@ jobs:
         uses: jbaddock/gha-get-docker-hub-tags@v1.0.0
         with:
           org: ${{env.LOCAL_REPO_OWNER}}  # Docker Hub user or organisation name
-          repo: ${{env.LOCAL_REPO_NAME}}  # Docker Hub repository name 
+          repo: ${{env.LOCAL_REPO_NAME}}  # Docker Hub repository name
 
       # Optionally check the tag we got back
       - name: Check outputs
