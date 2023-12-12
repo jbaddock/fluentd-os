@@ -1,0 +1,112 @@
+name: Trigger
+
+on:
+  schedule:
+    - cron: '47 2 * * *'
+  push:
+  pull_request:
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: docker.io
+
+  ## github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+  SOURCE_REPO_OWNER: fluent
+  SOURCE_REPO_NAME: fluentd
+
+  LOCAL_REPO_OWNER: jbaddock
+  LOCAL_REPO_NAME: fluentd-os
+
+
+jobs:
+  checkbuild:
+    name: Check and build image
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Get Docker tag
+        id: getDockerTag
+        uses: jbaddock/gha-get-docker-hub-tags@v1.0.0
+        with:
+          org: ${{env.LOCAL_REPO_OWNER}}  # Docker Hub user or organisation name
+          repo: ${{env.LOCAL_REPO_NAME}}  # Docker Hub repository name 
+
+      # Optionally check the tag we got back
+      - name: Check outputs
+        run: |
+          echo "Latest Image Tag - ${{ steps.getDockerTag.outputs.tag }}"
+
+      - name: Get SOURCE Github Release Tag
+        id: sourceRepoTag
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          owner: ${{env.SOURCE_REPO_OWNER}}
+          repo: ${{env.SOURCE_REPO_NAME}}
+
+      - name: Compare Tags and Continue or Exit
+        id: taskRunJob
+        ## Do not want CRON to build a new container unless a new source version is released.
+        ## Set a boolean value to run or skip all subsequent jobs.
+        run: |
+          dockerTag=${{ steps.getDockerTag.outputs.tag }}
+          sourceRepoTag=${{ steps.sourceRepoTag.outputs.release }}
+          echo "sourceRepoTag " $sourceRepoTag
+
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$sourceRepoTag" == *"$dockerTag"* ]]; then
+            echo "Cron task - source tags found in docker tags. Goodbye"
+            echo "runTask=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Continue script"
+          echo "runTask=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build a new tag
+        id: newDockerTag
+        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        run: |   
+          dockerTag="${{ steps.getDockerTag.outputs.tag }}"
+          sourceRepoTag="${{ steps.sourceRepoTag.outputs.release }}"
+
+          # Is SourceRepo tag in the Docker Repo Tag.
+          if [[ "$dockerTag" == *"$sourceRepoTag"* ]]; then
+              dockerTagSuffix=$(echo "${{ steps.getDockerTag.outputs.tag }}" | sed 's/^[^-]*-//')
+              dockerTagNew="${sourceRepoTag}-$((10#${dockerTagSuffix} + 1))" # Increment suffix
+          else
+            # No match.  Make new main tag.
+            dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
+          fi
+      
+      - name: Check out the repo
+        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        uses: actions/checkout@v4          
+
+      - name: Set up QEMU
+        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker buildx
+        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        uses: docker/setup-buildx-action@v3.0.0
+
+      - name: Login to Docker Hub
+        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push Docker images
+        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.newtag.outputs.localRepoTagNew }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
