@@ -70,7 +70,7 @@ jobs:
           
           # Outputs to Docker Env.  Only one tag is needed to be outputted now
           {
-            "env_dockerTagNew=$dockerTagNew"
+            echo "env_dockerTagNew=$dockerTagNew"
           } >> "$GITHUB_OUTPUT"
           
           # Summary page Markdown table
