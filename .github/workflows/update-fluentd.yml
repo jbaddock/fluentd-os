@@ -81,7 +81,7 @@ jobs:
               dockerTagSuffix=$(echo "${{ steps.getDockerTag.outputs.tag }}" | sed 's/^[^-]*-//')
               dockerTagNew="${sourceRepoTag}-$((10#${dockerTagSuffix} + 1))"   # Increment suffix +1
               echo "Tag found, let's increment it"
-          else  # No match found.  Make new main tag.
+          else
             dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
             echo "No Match found, make a new tag"
           fi
