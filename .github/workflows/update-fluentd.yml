@@ -82,6 +82,14 @@ jobs:
           fi
           echo "dockerTagNew=$dockerTagNew" >> "GITHUB_OUTPUT"
 
+      - name: Debug
+        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        run: |
+          echo "runTask value: ${{ steps.taskRunJob.outputs.runTask }}"
+          echo "dockerTag value originally was "${{ steps.getDockerTag.outputs.tag }}
+          echo "newtag value is   "  ${{ steps.newDockerTag.outputs.dockerTagNew }}
+          echo "the docker new tag is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
+
       - name: Check out the repo
         if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
         uses: actions/checkout@v4          
