@@ -81,7 +81,7 @@ jobs:
             dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
           fi
           echo "dockerTagNew=$dockerTagNew" >> "GITHUB_OUTPUT"
-      
+
       - name: Check out the repo
         if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
         uses: actions/checkout@v4          
@@ -109,5 +109,5 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.newtag.outputs.localRepoTagNew }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.newDockerTag.outputs.dockerTagNew }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
