@@ -77,13 +77,14 @@ jobs:
               dockerTagNew="${sourceRepoTag}-$((10#${dockerTagSuffix} + 1))"   # Increment suffix +1
           else  # No match found.  Make new main tag.
             dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
+            echo "step 2"
           fi
           echo "dockerTagNew=$dockerTagNew" >> "$GITHUB_OUTPUT"
 
       - name: Debug
         # Toggled to false, only needed if troubleshooting
         run: |
-          echo "runTask value: ${{ steps.taskRunJob.outputs.runTask }}"
+          echo "runTask value: ${{ steps.taskRunSwitch.outputs.runTask }}"
           echo "dockerTag value originally was ${{ steps.getDockerTag.outputs.tag }}"
           echo "newtag value is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
           echo "the docker new tag is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
