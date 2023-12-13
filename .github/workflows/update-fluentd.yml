@@ -55,7 +55,7 @@ jobs:
           dockerTag=${{ steps.getDockerTag.outputs.tag }}
           sourceRepoTag=${{ steps.sourceRepoTag.outputs.release }}
 
-          if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$sourceRepoTag" == *"$dockerTag"* ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$dockerTag" == *"$sourceRepoTag"* ]]; then
             echo "Cron task - source tags found in docker tags. Goodbye"
             echo "runTask=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -80,7 +80,6 @@ jobs:
           echo "dockerTagNew=$dockerTagNew" >> "$GITHUB_OUTPUT"
 
       - name: Debug
-        if: ${{ steps.taskRunSwitch.outputs.runTask == 'false' }}
         # Toggled to false, only needed if troubleshooting
         run: |
           echo "runTask value: ${{ steps.taskRunJob.outputs.runTask }}"
