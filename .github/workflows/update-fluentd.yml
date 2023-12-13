@@ -71,7 +71,7 @@ jobs:
           # Outputs to Docker Env.  Only one tag is needed to be outputted now
           {
             "env_dockerTagNew=$dockerTagNew"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
           
           # Summary page Markdown table
           {
@@ -84,7 +84,7 @@ jobs:
             echo "| env_dockerTag    | $dockerTag         |"
             echo "| env_dockerTagNew | $dockerTagNew      |"
             echo "| env_srcRepoTag   | $srcRepoTag        |"
-          } >> $GITHUB_STEP_SUMMARY
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Debug
         run: |
