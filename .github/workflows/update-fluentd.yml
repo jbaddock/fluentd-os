@@ -15,8 +15,8 @@ env:
   SOURCE_REPO_OWNER: fluent
   SOURCE_REPO_NAME: fluentd
 
-  LOCAL_REPO_OWNER: jbaddock
-  LOCAL_REPO_NAME: fluentd-os
+  DOCKER_HUB_OWNER: jbaddock
+  DOCKER_REPO_NAME: fluentd-os
 
 jobs:
   checkbuild:
@@ -32,13 +32,8 @@ jobs:
         id: getDockerTag
         uses: jbaddock/gha-get-docker-hub-tags@v1.0.0
         with:
-          org: ${{env.LOCAL_REPO_OWNER}}  # Docker Hub user or organisation name
-          repo: ${{env.LOCAL_REPO_NAME}}  # Docker Hub repository name
-
-      # Optionally check the tag we got back
-      - name: Check outputs
-        run: |
-          echo "Latest Image Tag - ${{ steps.getDockerTag.outputs.tag }}"
+          org: ${{env.DOCKER_HUB_OWNER}}  # Docker Hub user or organisation name
+          repo: ${{env.DOCKER_REPO_NAME}}  # Docker Hub repository name
 
       - name: Get SOURCE Github Release Tag
         id: sourceRepoTag
@@ -47,80 +42,80 @@ jobs:
           owner: ${{env.SOURCE_REPO_OWNER}}
           repo: ${{env.SOURCE_REPO_NAME}}
 
-      - name: Compare Tags and set true/false for task if run statements
-        id: taskRunSwitch
-        ## Do not want CRON to build a new container unless a new source version is released.
-        ## Set a boolean value to run or skip all subsequent jobs.
+      - name: Set up Environment Variables
+        id: envSetup
         run: |
-          sourceRepoTag=${{ steps.sourceRepoTag.outputs.release }}
+          srcRepoTag=${{ steps.sourceRepoTag.outputs.release }}
           dockerTag=${{ steps.getDockerTag.outputs.tag }}
+        
+          # Add "v" prefix to dockerTag if srcRepoTag starts with it.  The docker task strips the "v"
+          [[ "$srcRepoTag" == "v"* ]] && dockerTag="v$dockerTag"
           
-          # Add "v" prefix to dockerTag if sourceRepoTag starts with it
-          [[ "$sourceRepoTag" == "v"* ]] && dockerTag="v$dockerTag"
-
-          if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$dockerTag" == *"$sourceRepoTag"* ]]; then
-            echo "Cron task - source tags found in docker tags. Goodbye"
-            echo "runTask=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          contScript="true"  # Set the variable to being with.
+          # If this is a SCHEDULE and vX.X.X from source matches vX.X.X in Docker, set variable to skip all the remaining steps.
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$dockerTag" == *"$srcRepoTag"* ]]; then
+            contScript="false"
+            scriptStep="Schedule + Match"
           fi
-          echo "Continue script"
-          echo "runTask=true" >> "$GITHUB_OUTPUT"
 
-      - name: Build a new tag
-        id: newDockerTag
-        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
-        run: |   
-          dockerTag="${{ steps.getDockerTag.outputs.tag }}"
-          sourceRepoTag="${{ steps.sourceRepoTag.outputs.release }}"
-
-          # Add "v" prefix to dockerTag if sourceRepoTag starts with it
-          [[ "$sourceRepoTag" == "v"* ]] && dockerTag="v$dockerTag"
-
-          # Is SourceRepo tag in the Docker Repo Tag.
-          if [[ "$dockerTag" == *"$sourceRepoTag"* ]]; then
-              dockerTagSuffix=$(echo "${{ steps.getDockerTag.outputs.tag }}" | sed 's/^[^-]*-//')
-              dockerTagNew="${sourceRepoTag}-$((10#${dockerTagSuffix} + 1))"   # Increment suffix +1
-              echo "Tag found, let's increment it"
+          # Build the new tag.  Is srcRepoTag tag in the Docker Repo Tag.
+          if [[ "$dockerTag" == *"$srcRepoTag"* ]]; then
+            dockerTagSuffix=$(echo "${{ steps.getDockerTag.outputs.tag }}" | sed 's/^[^-]*-//')
+            dockerTagNew="${srcRepoTag}-$((10#${dockerTagSuffix} + 1))"   # Increment suffix +1
+            scriptStep="Increment Suffix +1 "
           else
-            dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
-            echo "No Match found, make a new tag"
+            dockerTagNew="${srcRepoTag}-1"  # Make new tag and append Suffix
+            scriptStep="New Tag"
           fi
-          echo "dockerTagNew=$dockerTagNew" >> "$GITHUB_OUTPUT"
+          
+          # Outputs to Docker Env.  Only one tag is needed to be outputted now
+          {
+            "env_dockerTagNew=$dockerTagNew"
+          } >> $GITHUB_OUTPUT
+          
+          # Summary page Markdown table
+          {
+            echo "### Workflow variables"
+            echo "| Variable         | Value              |"
+            echo "| ---------------- | ------------------ |"
+            echo "| env_eventName    | $GITHUB_EVENT_NAME |"
+            echo "| env_contScript   | $contScript    |"
+            echo "| env_scriptStep   | $scriptStep        |"
+            echo "| env_dockerTag    | $dockerTag         |"
+            echo "| env_dockerTagNew | $dockerTagNew      |"
+            echo "| env_srcRepoTag   | $srcRepoTag        |"
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: Debug
-        # Toggled to false, only needed if troubleshooting
         run: |
-          echo "runTask value: ${{ steps.taskRunSwitch.outputs.runTask }}"
-          echo "dockerTag value originally was ${{ steps.getDockerTag.outputs.tag }}"
-          echo "the source repo tag is ${{ steps.sourceRepoTag.outputs.release }}"
-          echo "the docker new tag is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
+          echo "runTask value: ${{ steps.envSetup.outputs.env_dockerTag }}"
 
       - name: Check out the repo
-        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
+        if: ${{ steps.envSetup.outputs.env_contScript == 'true' }}
         uses: actions/checkout@v4          
 
       - name: Set up QEMU
-        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
+        if: ${{ steps.envSetup.outputs.env_contScript == 'true' }}
         uses: docker/setup-qemu-action@v3
 
       - name: Setup Docker buildx
-        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
+        if: ${{ steps.envSetup.outputs.env_contScript == 'true' }}
         uses: docker/setup-buildx-action@v3.0.0
 
       - name: Login to Docker Hub
-        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
+        if: ${{ steps.envSetup.outputs.env_contScript == 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build and push Docker images
-        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
+        if: ${{ steps.envSetup.outputs.env_contScript == 'true' }}
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.newDockerTag.outputs.dockerTagNew }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.envSetup.outputs.env_dockerTagNew }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
