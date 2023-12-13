@@ -83,7 +83,7 @@ jobs:
         # Toggled to false, only needed if troubleshooting
         run: |
           echo "runTask value: ${{ steps.taskRunJob.outputs.runTask }}"
-          echo "dockerTag value originally was ${{ steps.getDockerTag.outputs.tag }}""
+          echo "dockerTag value originally was ${{ steps.getDockerTag.outputs.tag }}"
           echo "newtag value is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
           echo "the docker new tag is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
           echo "the source repo tag is ${{ steps.sourceRepoTag.outputs.release }}"
