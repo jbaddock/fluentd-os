@@ -80,7 +80,7 @@ jobs:
           else
             # No match.  Make new main tag.
             dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
-            echo "make new tag"
+            echo "make new tag " $dockerTagNew 
           fi
           echo "dockerTagNew=$dockerTagNew" >> "GITHUB_OUTPUT"
 
