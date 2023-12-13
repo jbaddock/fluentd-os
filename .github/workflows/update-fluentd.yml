@@ -52,8 +52,12 @@ jobs:
         ## Do not want CRON to build a new container unless a new source version is released.
         ## Set a boolean value to run or skip all subsequent jobs.
         run: |
-          dockerTag=${{ steps.getDockerTag.outputs.tag }}
           sourceRepoTag=${{ steps.sourceRepoTag.outputs.release }}
+          dockerTag=${{ steps.getDockerTag.outputs.tag }}
+
+          if [[ "$sourceRepoTag" == "v"* ]]; then  # Accounting for dockerTag stripping out the v.  Might be needed for the if conditions.
+            dockerTag="v$dockerTag"
+          fi
 
           if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$dockerTag" == *"$sourceRepoTag"* ]]; then
             echo "Cron task - source tags found in docker tags. Goodbye"
@@ -69,6 +73,10 @@ jobs:
         run: |   
           dockerTag="${{ steps.getDockerTag.outputs.tag }}"
           sourceRepoTag="${{ steps.sourceRepoTag.outputs.release }}"
+
+          if [[ "$sourceRepoTag" == "v"* ]]; then  # Accounting for dockerTag stripping out the v.  Might be needed for the if conditions.
+            dockerTag="v$dockerTag"
+          fi
 
           # Is SourceRepo tag in the Docker Repo Tag.
           if [[ "$dockerTag" == *"$sourceRepoTag"* ]]; then
