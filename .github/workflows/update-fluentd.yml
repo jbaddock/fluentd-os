@@ -93,7 +93,7 @@ jobs:
           echo "runTask value: ${{ steps.taskRunSwitch.outputs.runTask }}"
           echo "dockerTag value originally was ${{ steps.getDockerTag.outputs.tag }}"
           echo "the source repo tag is ${{ steps.sourceRepoTag.outputs.release }}"
-          echo "the docker new tag is ${{ steps.newDockerTag.outputs.dockerTagNew }}""
+          echo "the docker new tag is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
 
       - name: Check out the repo
         if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
