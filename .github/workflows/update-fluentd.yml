@@ -54,10 +54,9 @@ jobs:
         run: |
           sourceRepoTag=${{ steps.sourceRepoTag.outputs.release }}
           dockerTag=${{ steps.getDockerTag.outputs.tag }}
-
-          if [[ "$sourceRepoTag" == "v"* ]]; then  # Accounting for dockerTag stripping out the v.  Might be needed for the if conditions.
-            dockerTag="v$dockerTag"
-          fi
+          
+          # Add "v" prefix to dockerTag if sourceRepoTag starts with it
+          [[ "$sourceRepoTag" == "v"* ]] && dockerTag="v$dockerTag"
 
           if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$dockerTag" == *"$sourceRepoTag"* ]]; then
             echo "Cron task - source tags found in docker tags. Goodbye"
@@ -74,18 +73,17 @@ jobs:
           dockerTag="${{ steps.getDockerTag.outputs.tag }}"
           sourceRepoTag="${{ steps.sourceRepoTag.outputs.release }}"
 
-          if [[ "$sourceRepoTag" == "v"* ]]; then  # Accounting for dockerTag stripping out the v.  Might be needed for the if conditions.
-            dockerTag="v$dockerTag"
-          fi
+          # Add "v" prefix to dockerTag if sourceRepoTag starts with it
+          [[ "$sourceRepoTag" == "v"* ]] && dockerTag="v$dockerTag"
 
           # Is SourceRepo tag in the Docker Repo Tag.
           if [[ "$dockerTag" == *"$sourceRepoTag"* ]]; then
               dockerTagSuffix=$(echo "${{ steps.getDockerTag.outputs.tag }}" | sed 's/^[^-]*-//')
-              echo "the docker tag suffix is $dockerTagSuffix"
               dockerTagNew="${sourceRepoTag}-$((10#${dockerTagSuffix} + 1))"   # Increment suffix +1
+              echo "Tag found, let's increment it"
           else  # No match found.  Make new main tag.
             dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
-            echo "step 2"
+            echo "No Match found, make a new tag"
           fi
           echo "dockerTagNew=$dockerTagNew" >> "$GITHUB_OUTPUT"
 
