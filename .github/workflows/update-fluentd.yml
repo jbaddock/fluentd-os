@@ -51,10 +51,10 @@ jobs:
           # Add "v" prefix to dockerTag if srcRepoTag starts with it.  The docker task strips the "v"
           [[ "$srcRepoTag" == "v"* ]] && dockerTag="v$dockerTag"
           
-          "contScript=true"  # Set the variable to being with.
+          contScript="true"  # Set the variable to being with.
           # If this is a SCHEDULE and vX.X.X from source matches vX.X.X in Docker, set variable to skip all the remaining steps.
           if [[ "$GITHUB_EVENT_NAME" == "schedule" && "$dockerTag" == *"$srcRepoTag"* ]]; then
-            "contScript=false"
+            contScript="false"
             scriptStep="Schedule + Match"
           fi
 
@@ -71,6 +71,7 @@ jobs:
           # Outputs to Docker Env.  Only one tag is needed to be outputted now
           {
             echo "env_dockerTagNew=$dockerTagNew"
+            echo "env_contScript=$contScript"
           } >> "$GITHUB_OUTPUT"
           
           # Summary page Markdown table
