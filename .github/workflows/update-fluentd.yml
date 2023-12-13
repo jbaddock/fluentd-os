@@ -48,8 +48,8 @@ jobs:
           owner: ${{env.SOURCE_REPO_OWNER}}
           repo: ${{env.SOURCE_REPO_NAME}}
 
-      - name: Compare Tags and Continue or Exit
-        id: taskRunJob
+      - name: Compare Tags and set true/false for task if run statements
+        id: taskRunSwitch
         ## Do not want CRON to build a new container unless a new source version is released.
         ## Set a boolean value to run or skip all subsequent jobs.
         run: |
@@ -67,7 +67,7 @@ jobs:
 
       - name: Build a new tag
         id: newDockerTag
-        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
         run: |   
           dockerTag="${{ steps.getDockerTag.outputs.tag }}"
           sourceRepoTag="${{ steps.sourceRepoTag.outputs.release }}"
@@ -76,14 +76,16 @@ jobs:
           if [[ "$dockerTag" == *"$sourceRepoTag"* ]]; then
               dockerTagSuffix=$(echo "${{ steps.getDockerTag.outputs.tag }}" | sed 's/^[^-]*-//')
               dockerTagNew="${sourceRepoTag}-$((10#${dockerTagSuffix} + 1))" # Increment suffix
+              echo "are we here??"
           else
             # No match.  Make new main tag.
             dockerTagNew="${sourceRepoTag}-1"  # Make new tag and append Suffix
+            echo "make new tag"
           fi
           echo "dockerTagNew=$dockerTagNew" >> "GITHUB_OUTPUT"
 
       - name: Debug
-        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
         run: |
           echo "runTask value: ${{ steps.taskRunJob.outputs.runTask }}"
           echo "dockerTag value originally was "${{ steps.getDockerTag.outputs.tag }}
@@ -91,26 +93,26 @@ jobs:
           echo "the docker new tag is ${{ steps.newDockerTag.outputs.dockerTagNew }}"
 
       - name: Check out the repo
-        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
         uses: actions/checkout@v4          
 
       - name: Set up QEMU
-        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
         uses: docker/setup-qemu-action@v3
 
       - name: Setup Docker buildx
-        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
         uses: docker/setup-buildx-action@v3.0.0
 
       - name: Login to Docker Hub
-        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Build and push Docker images
-        if: ${{ steps.taskRunJob.outputs.runTask == 'true' }}
+        if: ${{ steps.taskRunSwitch.outputs.runTask == 'true' }}
         uses: docker/build-push-action@v5
         with:
           context: .
