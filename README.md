@@ -12,14 +12,14 @@ This repo uses the fluentd repo's as the source, and adds additional plugins.  A
 [jbaddock/fluentd](https://hub.docker.com/r/jbaddock/fluentd-os)
 
 #### Docker Run ####
-`docker run -d --name fluentd -p 24224:24224 -p 24224:24224/udp --restart unless-stopped -v "CHANGEYOURDIR/fluentd/conf:/fluentd/etc" jbaddock/fluentd`
+`docker run -d --name fluentd -p 24224:24224 -p 24224:24224/udp --restart unless-stopped -v "CHANGEYOURDIR/fluentd/conf:/fluentd/etc" jbaddock/fluentd-os`
 
 #### Docker compose ####
 ```yml
 version: "2.1"
 services:
   fluentd:
-    image: jbaddock/fluentd
+    image: jbaddock/fluentd-os
     container_name: fluentd
     ports:
         - "24224:24224"
