@@ -2,7 +2,7 @@
 This repo uses the fluentd repo's as the source, and adds additional plugins.  A workflow runs daily to check for updates.  Also working to expand my knowledge.
 
 # fluentd w/ Opensearch-plugin
-<a href="(https://github.com/fluent/fluentd" target="_blank">fluentd on Github</a>.  This docker container is built with the following plugins:</br>
+<a href="https://github.com/fluent/fluentd" target="_blank">fluentd on Github</a>.  This docker container is built with the following plugins:</br>
 - [opensearch output plugin](https://github.com/fluent/fluent-plugin-opensearch)
 - [docker](https://github.com/edsiper/fluent-plugin-docker)
 - [geoip filter](https://github.com/y-ken/fluent-plugin-geoip)
